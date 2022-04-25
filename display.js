@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
 
 const loader = new THREE.TextureLoader();
@@ -22,7 +22,7 @@ const material = [
 
 
 renderer.setClearColor(new THREE.Color(0xffffff))
-renderer.setSize(500, 500);
+renderer.setSize(200, 200);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -45,7 +45,7 @@ const cubeRoot = new THREE.Group();
 cubeRoot.add(cube);
 scene.add(cubeRoot);
 
-camera.position.z = 5;
+camera.position.z = 2;
 window.faceXRotation = 0;
 window.faceYRotation = 0;
 window.faceZRotation = 0;
@@ -61,7 +61,14 @@ function animate() {
     cube.rotation.x = (window.faceXRotation - window.faceXOffset);
     cube.rotation.y = (window.faceYRotation - window.faceYOffset);
     cubeRoot.rotation.z = (window.faceZRotation - window.faceZOffset);
-    parameterDisplay.innerHTML = `x:${window.faceXRotation}\ny:${window.faceYRotation}\nz:${window.faceZRotation}`
+    parameterDisplay.innerHTML = `
+    x:${window.faceXRotation}
+    y:${window.faceYRotation}
+    z:${window.faceZRotation}
+    offX:${window.faceXOffset}
+    offY:${window.faceYOffset}
+    offZ:${window.faceZOffset}
+    `
     renderer.render(scene, camera);
 
 }

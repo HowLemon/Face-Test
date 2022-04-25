@@ -20,7 +20,8 @@ const MediaStreamHelper = {
         const videoSource = cameraSelect.value;
         const constraints = {
             video: {
-                deviceId: videoSource ? { exact: videoSource } : undefined
+                deviceId: videoSource ? { exact: videoSource } : undefined,
+                height: 480
             }
         };
 
