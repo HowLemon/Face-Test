@@ -41,6 +41,7 @@ async function init() {
         if (face) {
             window.lastDetectedFace = face;
             window.lastDetectedFaceImage = results.image;
+            notifyDetectedFace();
             calculateFaceData(face);
             previewFaceMesh(face, results.image);
             if (!calibrated) {
@@ -53,6 +54,22 @@ async function init() {
     }
 }
 
+let lastTime = 0;
+let fpsCounter = document.getElementById("fps");
+let smoother = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+function notifyDetectedFace() {
+    let diff = (Date.now() - lastTime);
+    smoother.unshift(diff);
+    smoother.pop();
+    try {
+        fpsCounter.innerHTML = 1000 / (smoother.reduce((a, b) => a + b, 0) / smoother.length);
+    } catch {
+
+    }
+
+    lastTime = Date.now();
+}
+
 window.lastDetectedFace = null;
 init();
 
@@ -60,7 +77,7 @@ init();
 
 /** @type {WebGLRenderingContext} */
 const canvasCtx = document.getElementById("canvas-preview").getContext('2d');
-function previewFaceMesh(face, image) {
+async function previewFaceMesh(face, image) {
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, 400, 300);
     canvasCtx.drawImage(image, 0, 0, 400, 300);
@@ -75,12 +92,70 @@ function previewFaceMesh(face, image) {
     drawConnectors(canvasCtx, face, FACEMESH_LIPS, { color: '#E0E0E0' });
     drawConnectors(canvasCtx, face, [[8, 36], [36, 266], [266, 8]], { color: '#4287f555' });
 }
+const filterLength = 10
+window.sampleRate = 16
+window.cutoff = 22050;
+const faceXArray = Array(filterLength).fill(0);
+const faceYArray = Array(filterLength).fill(0);
+const faceZArray = Array(filterLength).fill(0);
+
+console.log(faceXArray, faceYArray, faceZArray)
 
 function calculateFaceData(face) {
     let normal = calculateNormal(face[8], face[36], face[266]);
-    window.faceXRotation = calculateAngle(normal.y, normal.z);
-    window.faceYRotation = calculateAngle(normal.x, normal.z);
-    window.faceZRotation = calculateAngle(face[266].y, face[36].y) * 4;
+
+    let mouthOpen = distanceVector(face[13], face[14]);
+    let scale = distanceVector(face[36], face[266]);
+    let leyeOpen = distanceVector(face[159], face[145]) / scale;
+    let reyeOpen = distanceVector(face[386], face[374]) / scale;
+
+    leyeOpen = leyeOpen * 10 - 1;
+    reyeOpen = reyeOpen * 10 - 1;
+
+    // if (leyeOpen > 0.3) {
+    //     leyeOpen = 1
+    // } else {
+    //     leyeOpen = 0
+    // }
+
+    // if (reyeOpen > 0.3) {
+    //     reyeOpen = 1
+    // } else {
+    //     reyeOpen = 0
+    // }
+
+
+    faceXArray.shift()
+    faceYArray.shift()
+    faceZArray.shift()
+
+    faceXArray.push(calculateAngle(normal.y, normal.z));
+    faceYArray.push(calculateAngle(normal.x, normal.z));
+    faceZArray.push(calculateAngle(face[266].y, face[36].y) * 4);
+    if (window.filter) {
+        // console.log(faceXArray, faceYArray, faceZArray)
+        let faceXArraySnapshot = faceXArray.slice();
+        let faceYArraySnapshot = faceYArray.slice();
+        let faceZArraySnapshot = faceZArray.slice();
+
+        lowPassFilter.lowPassFilter(faceXArraySnapshot, window.cutoff, window.sampleRate, 1);
+        lowPassFilter.lowPassFilter(faceYArraySnapshot, window.cutoff, window.sampleRate, 1);
+        lowPassFilter.lowPassFilter(faceZArraySnapshot, window.cutoff, window.sampleRate, 1);
+        console.log(faceXArraySnapshot);
+
+        window.faceXRotation = faceXArraySnapshot[5];
+        window.faceYRotation = faceYArraySnapshot[5];
+        window.faceZRotation = faceZArraySnapshot[5];
+    } else {
+        window.faceXRotation = faceXArray.at(-1)
+        window.faceYRotation = faceYArray.at(-1)
+        window.faceZRotation = faceZArray.at(-1)
+    }
+
+    window.faceMouthOpen = mouthOpen;
+    window.EyeOpenL = leyeOpen;
+    window.EyeOpenR = reyeOpen;
+
 }
 
 function calculateNormal(a, b, c) {
@@ -90,6 +165,14 @@ function calculateNormal(a, b, c) {
     let Ny = k.z * j.x - k.x * j.z;
     let Nz = k.x * j.y - k.y * j.x;
     return { x: Nx, y: Ny, z: Nz }
+}
+
+function distanceVector(v1, v2) {
+    var dx = v1.x - v2.x;
+    var dy = v1.y - v2.y;
+    var dz = v1.z - v2.z;
+
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 function calculateAngle(x, y) {

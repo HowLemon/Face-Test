@@ -1,0 +1,28 @@
+
+canvas.live2D{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    pointer-events: none;
+}
+.canvas-container{
+    padding: 30px;
+    display: inline-block;
+}
+
+
+div.character{
+    width: 300px;
+    height: 500px;
+    border: 1px black solid;
+    border-radius: 10px;
+    background-color: aquamarine;
+    display: inline-block;
+}
+
+.display-3d{
+    display: inline-block;
+}

@@ -68,6 +68,10 @@ function animate() {
     offX:${window.faceXOffset}
     offY:${window.faceYOffset}
     offZ:${window.faceZOffset}
+    Mouthopen:${window.faceMouthOpen}
+    Eye L:${window.EyeOpenL}
+    Eye R:${window.EyeOpenR}
+    Tranformed X:
     `
     renderer.render(scene, camera);
 
