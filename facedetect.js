@@ -1,3 +1,5 @@
+import { OneEuroFilter } from "./OneEuroFilter.js";
+
 async function init() {
     let calibrated = false;
     const videoElement = document.getElementById("video-player");
@@ -86,6 +88,7 @@ async function previewFaceMesh(face, image) {
     drawConnectors(canvasCtx, face, FACEMESH_RIGHT_EYEBROW, { color: '#FF3030' });
     drawConnectors(canvasCtx, face, FACEMESH_RIGHT_IRIS, { color: '#FF3030' });
     drawConnectors(canvasCtx, face, FACEMESH_LEFT_EYE, { color: '#30FF30' });
+    drawConnectors(canvasCtx, face, [[468, 469]], { color: '#30FF30' });
     drawConnectors(canvasCtx, face, FACEMESH_LEFT_EYEBROW, { color: '#30FF30' });
     drawConnectors(canvasCtx, face, FACEMESH_LEFT_IRIS, { color: '#30FF30' });
     drawConnectors(canvasCtx, face, FACEMESH_FACE_OVAL, { color: '#E0E0E0' });
@@ -95,19 +98,38 @@ async function previewFaceMesh(face, image) {
 const filterLength = 10
 window.sampleRate = 16
 window.cutoff = 22050;
+window.leftEyeVectorOffset = { x: 0, y: 0, z: 0 };
+window.rightEyeVectorOffset = { x: 0, y: 0, z: 0 };
 const faceXArray = Array(filterLength).fill(0);
 const faceYArray = Array(filterLength).fill(0);
 const faceZArray = Array(filterLength).fill(0);
+
+
 
 console.log(faceXArray, faceYArray, faceZArray)
 
 function calculateFaceData(face) {
     let normal = calculateNormal(face[8], face[36], face[266]);
 
-    let mouthOpen = distanceVector(face[13], face[14]);
+
+
     let scale = distanceVector(face[36], face[266]);
+    let mouthOpen = distanceVector(face[13], face[14]) / scale;
     let leyeOpen = distanceVector(face[159], face[145]) / scale;
     let reyeOpen = distanceVector(face[386], face[374]) / scale;
+
+    let leftIris = face[473];
+    let rightIris = face[468];
+    let leftEyeCenter = FACEMESH_LEFT_EYE.map(e => lastDetectedFace[e[0]])
+        .reduce((p, c) => {
+            return { x: p.x + c.x / FACEMESH_LEFT_EYE.length, y: p.y + c.y * scale / (FACEMESH_LEFT_EYE.length), z: p.z + c.z * scale / (FACEMESH_LEFT_EYE.length) };
+        }, ({ x: 0, y: 0, z: 0 }))
+    let rightEyeCenter = FACEMESH_LEFT_EYE.map(e => lastDetectedFace[e[0]])
+        .reduce((p, c) => {
+            return { x: p.x + c.x / FACEMESH_RIGHT_EYE.length, y: p.y + c.y * scale / (FACEMESH_LEFT_EYE.length), z: p.z + c.z * scale / (FACEMESH_LEFT_EYE.length) };
+        }, ({ x: 0, y: 0, z: 0 }))
+    window.leftEyeVector = Vector.sub(leftIris, leftEyeCenter);
+    window.rightEyeVector = Vector.sub(rightIris, rightEyeCenter);
 
     leyeOpen = leyeOpen * 10 - 1;
     reyeOpen = reyeOpen * 10 - 1;
@@ -134,18 +156,18 @@ function calculateFaceData(face) {
     faceZArray.push(calculateAngle(face[266].y, face[36].y) * 4);
     if (window.filter) {
         // console.log(faceXArray, faceYArray, faceZArray)
-        let faceXArraySnapshot = faceXArray.slice();
-        let faceYArraySnapshot = faceYArray.slice();
-        let faceZArraySnapshot = faceZArray.slice();
+        // let faceXArraySnapshot = faceXArray.slice();
+        // let faceYArraySnapshot = faceYArray.slice();
+        // let faceZArraySnapshot = faceZArray.slice();
 
-        lowPassFilter.lowPassFilter(faceXArraySnapshot, window.cutoff, window.sampleRate, 1);
-        lowPassFilter.lowPassFilter(faceYArraySnapshot, window.cutoff, window.sampleRate, 1);
-        lowPassFilter.lowPassFilter(faceZArraySnapshot, window.cutoff, window.sampleRate, 1);
-        console.log(faceXArraySnapshot);
+        // lowPassFilter.lowPassFilter(faceXArraySnapshot, window.cutoff, window.sampleRate, 1);
+        // lowPassFilter.lowPassFilter(faceYArraySnapshot, window.cutoff, window.sampleRate, 1);
+        // lowPassFilter.lowPassFilter(faceZArraySnapshot, window.cutoff, window.sampleRate, 1);
+        // console.log(faceXArraySnapshot);
 
-        window.faceXRotation = faceXArraySnapshot[5];
-        window.faceYRotation = faceYArraySnapshot[5];
-        window.faceZRotation = faceZArraySnapshot[5];
+        // window.faceXRotation = faceXArraySnapshot[5];
+        // window.faceYRotation = faceYArraySnapshot[5];
+        // window.faceZRotation = faceZArraySnapshot[5];
     } else {
         window.faceXRotation = faceXArray.at(-1)
         window.faceYRotation = faceYArray.at(-1)
@@ -185,5 +207,9 @@ function calculateAngle(x, y) {
 const Vector = {
     sub: (b, a) => {
         return { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
+    },
+    add: (b, a) => {
+        return { x: b.x + a.x, y: b.y + a.y, z: b.z + a.z };
     }
 }
+

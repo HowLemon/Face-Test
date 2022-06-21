@@ -77,11 +77,6 @@ function animate() {
 
 }
 
-let calibrate = document.getElementById("calibrate");
-calibrate.onclick = ()=>{
-    window.faceXOffset = window.faceXRotation;
-    window.faceYOffset = window.faceYRotation;
-    window.faceZOffset = window.faceZRotation;
-}
+
 
 animate();
